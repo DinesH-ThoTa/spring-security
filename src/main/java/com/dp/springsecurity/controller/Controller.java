@@ -3,11 +3,14 @@ package com.dp.springsecurity.controller;
 import com.dp.springsecurity.entity.AuthRequest;
 import com.dp.springsecurity.entity.UserInfo;
 import com.dp.springsecurity.repository.UserInfoRepo;
-import com.dp.springsecurity.service.JwtToken;
+import com.dp.springsecurity.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,7 +27,10 @@ public class Controller {
     private UserInfoRepo userInfoRepo;
 
     @Autowired
-    private JwtToken jwtToken;
+    private JwtService jwtService;
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
 
 
     @GetMapping("/products/emp")
@@ -47,9 +53,13 @@ public class Controller {
     }
 
     @PostMapping("/authenticate")
-    public String authenticateAndGetToken(@RequestBody AuthRequest authRequest){
-
-        return jwtToken.generateToken(authRequest.getUserName());
+    public String authenticateAndGetToken(@RequestBody AuthRequest authRequest) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(authRequest.getUserName(), authRequest.getPassword()));
+        if(authentication.isAuthenticated()){
+            return jwtService.generateToken(authRequest.getUserName());
+        }
+        throw new IllegalArgumentException("User not found");
     }
 
 }
